@@ -1,13 +1,14 @@
 const express = require('express');
 const routes = express.Router();
-
 const User = require('./modules/User');
 
-routes.get('/users', User.listUsers);
-routes.get('/user/:id', User.getUser);
+const { decodeUserToken } = require('./middlewares');
+
+routes.get("/users", decodeUserToken, User.listUsers);
+routes.get("/user/:id", decodeUserToken, User.getUser);
 routes.post("/user", User.createUser);
-routes.patch("/user/:id", User.updateUser);
-routes.delete("/user/:id", User.deleteUser);
+routes.patch("/user/:id", decodeUserToken, User.updateUser);
+routes.delete("/user/:id", decodeUserToken, User.deleteUser);
 
 module.exports = routes;
 

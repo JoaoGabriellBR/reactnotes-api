@@ -1,6 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const secret = process.env.AUTH_SECRET;
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 module.exports = {
   async listUsers(req, res) {
     try {
@@ -50,11 +54,13 @@ module.exports = {
       if (userExists)
         return res.status(400).json({ error: "Usuário já cadastrado" });
 
+      const hashedPassword = await bcrypt.hash(password, 10);
+
       const response = await prisma.tb_user.create({
         data: {
           name: name.toUpperCase(),
           email,
-          password,
+          password: hashedPassword,
         },
       });
 
