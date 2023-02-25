@@ -9,6 +9,7 @@ routes.get("/user/:id", decodeUserToken, User.getUser);
 routes.post("/user", User.createUser);
 routes.patch("/user/:id", decodeUserToken, User.updateUser);
 routes.delete("/user/:id", decodeUserToken, User.deleteUser);
+routes.post('/login', User.login);
 
 module.exports = routes;
 

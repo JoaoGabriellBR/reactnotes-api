@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const secret = process.env.AUTH_SECRET;
+const secret = "fo743ybn7834yfo7u4g3ver4f4w487fy4otnw";
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -119,5 +119,22 @@ module.exports = {
     } catch (e) {
       console.log(e.message);
     }
+  },
+
+  async login(req, res) {
+    const { email, password } = req.body;
+
+    const user = await prisma.tb_user.findFirst({ where: { email } });
+
+    if (!user || user.deleted_at !== null)
+      return res.status(404).send({ error: "Usuário não encontrado!" });
+
+    if (!(await bcrypt.compare(password, user.password)))
+      return res.status(401).send({ error: "Senha incorreta!" });
+
+    delete user.password;
+    const token = jwt.sign({ ...user }, secret);
+
+    res.status(200).send({ token, user });
   },
 };
