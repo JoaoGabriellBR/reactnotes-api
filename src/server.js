@@ -10,4 +10,4 @@ app.use(routes);
 
 app.listen({ port: 3002 });
 console.clear();
-console.log("Running...");
+console.log("🚀 Running...");

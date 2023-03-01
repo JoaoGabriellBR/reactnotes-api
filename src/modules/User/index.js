@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const secret = "fo743ybn7834yfo7u4g3ver4f4w487fy4otnw";
+const secret = process.env.AUTH_SECRET;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -14,30 +14,26 @@ module.exports = {
       });
 
       res.status(200).json(response);
-    } catch (error) {
-      res.status(500).send(error.message);
-      console.log(error.message);
+    } catch (e) {
+      console.log(e.message);
     }
   },
 
   async getUser(req, res) {
-    try {
-      const { id } = req.params;
-
-      const response = await prisma.tb_user.findUnique({
-        where: { id: parseInt(id) },
-      });
-
-      if (!response)
-        return res.status(404).send({ error: "Usuário não encontrado" });
-
-      res.status(200).json(response);
-    } catch (e) {
-      console.log(e.message);
-      res.status(500).send(e.message);
+    const { userData } = req;
+  
+    const response = await prisma.tb_user.findUnique({
+      where: { id: parseInt(userData?.id) },
+    });
+  
+    if (!response) {
+      res.status(404).send({ error: "Usuário não encontrado!" });
+    } else {
+      delete response.password;
+      res.status(200).send(response);
     }
   },
-
+  
   async createUser(req, res) {
     try {
       const { name, email, password } = req.body;
@@ -94,7 +90,6 @@ module.exports = {
       res.status(200).json(response);
     } catch (e) {
       console.log(e.message);
-      res.status(500).send(e.message);
     }
   },
 
@@ -113,9 +108,7 @@ module.exports = {
         where: { id: parseInt(userExists.id) },
       });
 
-      res
-        .status(200)
-        .send(response, { success: "Usuário excluído com sucesso" });
+      res.status(200).send({ success: "Usuário excluído com sucesso" });
     } catch (e) {
       console.log(e.message);
     }

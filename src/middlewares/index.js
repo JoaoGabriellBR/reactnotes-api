@@ -10,8 +10,9 @@ module.exports = {
     const decodedToken = jwt.decode(authorization, secret);
 
     if (!decodedToken) return res.status(401).send({ error: "Unauthorized" });
-    res.status(200).send({});
+
     req.userData = decodedToken;
     next();
   },
 };
+
