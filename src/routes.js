@@ -9,7 +9,8 @@ const { decodeUserToken } = require("./middlewares");
 routes.get("/users", decodeUserToken, User.listUsers);
 routes.get("/user", decodeUserToken, User.getUser);
 routes.post("/user", User.createUser);
-routes.patch("/user/:id", decodeUserToken, User.updateUser);
+routes.patch("/user", decodeUserToken, User.updateUser);
+routes.patch("/user/change-password", decodeUserToken, User.changePassword);
 routes.delete("/user/:id", decodeUserToken, User.deleteUser);
 routes.post("/login", User.login);
 

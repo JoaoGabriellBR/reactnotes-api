@@ -4,12 +4,14 @@ const prisma = new PrismaClient();
 module.exports = {
   async listNotes(req, res) {
     try {
+      const { userData } = req;
+
       const totalCount = await prisma.tb_notes.count({
         where: { deleted_at: null },
       });
 
       const response = await prisma.tb_notes.findMany({
-        where: { deleted_at: null },
+        where: { deleted_at: null, id_author: parseInt(userData.id) },
         orderBy: { created_at: "desc" },
         take: parseInt(totalCount),
         include: {

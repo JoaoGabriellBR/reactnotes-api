@@ -21,11 +21,11 @@ module.exports = {
 
   async getUser(req, res) {
     const { userData } = req;
-  
+
     const response = await prisma.tb_user.findUnique({
       where: { id: parseInt(userData?.id) },
     });
-  
+
     if (!response) {
       res.status(404).send({ error: "Usuário não encontrado!" });
     } else {
@@ -33,7 +33,7 @@ module.exports = {
       res.status(200).send(response);
     }
   },
-  
+
   async createUser(req, res) {
     try {
       const { name, email, password } = req.body;
@@ -68,11 +68,11 @@ module.exports = {
 
   async updateUser(req, res) {
     try {
-      const { id } = req.params;
-      const { name, email, password } = req.body;
+      const { userData } = req;
+      const { name, email } = req.body;
 
       const userExists = await prisma.tb_user.findFirst({
-        where: { id: parseInt(id) },
+        where: { id: parseInt(userData.id) },
       });
 
       if (!userExists)
@@ -83,11 +83,38 @@ module.exports = {
         data: {
           name: name.toUpperCase(),
           email,
-          password,
         },
       });
 
       res.status(200).json(response);
+    } catch (e) {
+      console.log(e.message);
+    }
+  },
+
+  async changePassword(req, res) {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      const { userData } = req;
+      console.log(userData);
+
+      const user = await prisma.tb_user.findFirst({
+        where: { id: parseInt(userData.id) },
+      });
+
+      if (!user) return res.status(401).send({ error: "Usuário inválido!" });
+
+      if (!(await bcrypt.compare(oldPassword, user.password)))
+        return res.status(401).send({ error: "Senha atual incorreta!" });
+
+      await prisma.tb_user.update({
+        where: { id: parseInt(user.id) },
+        data: {
+          password: await bcrypt.hash(newPassword, 10),
+        },
+      });
+
+      return res.status(200).send({ success: "Senha atualizada!" });
     } catch (e) {
       console.log(e.message);
     }
