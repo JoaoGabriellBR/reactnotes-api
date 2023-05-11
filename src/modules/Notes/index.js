@@ -5,13 +5,22 @@ module.exports = {
   async listNotes(req, res) {
     try {
       const { userData } = req;
+      const { search } = req.headers;
 
+      const where = {
+        deleted_at: null,
+      };
+
+      if (search && search !== "undefined") where.title = { contains: search };
       const totalCount = await prisma.tb_notes.count({
-        where: { deleted_at: null },
+        where,
       });
 
       const response = await prisma.tb_notes.findMany({
-        where: { deleted_at: null, id_author: parseInt(userData.id) },
+        where: {
+          ...where,
+          id_author: parseInt(userData.id),
+        },
         orderBy: { created_at: "desc" },
         take: parseInt(totalCount),
         include: {
@@ -49,7 +58,7 @@ module.exports = {
       }
 
       const response = await prisma.tb_notes.findUnique({
-        where: { id: parseInt(id)},
+        where: { id: parseInt(id) },
         include: {
           tb_user: true,
         },
@@ -124,7 +133,7 @@ module.exports = {
     }
   },
 
-  async deleteNote(req, res){
+  async deleteNote(req, res) {
     const { id } = req.params;
 
     const exist = await prisma.tb_notes.findFirst({
@@ -137,9 +146,9 @@ module.exports = {
 
     const response = await prisma.tb_notes.update({
       where: { id: parseInt(id) },
-      data: { deleted_at: new Date() }
+      data: { deleted_at: new Date() },
     });
 
     res.status(200).send(response);
-  }
+  },
 };
