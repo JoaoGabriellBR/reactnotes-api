@@ -1,4 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
+const { requestStatus } = require('../../utils/requestStatus');
+
 const prisma = new PrismaClient();
 
 const secret = process.env.AUTH_SECRET;
@@ -131,7 +133,7 @@ module.exports = {
       if (!userExists)
         return res.status(404).send({ error: "Usuário não encontrado" });
 
-      const response = await prisma.tb_user.delete({
+      await prisma.tb_user.delete({
         where: { id: parseInt(userExists.id) },
       });
 
@@ -141,20 +143,31 @@ module.exports = {
     }
   },
 
-  async login(req, res) {
-    const { email, password } = req.body;
+  async login({ body: { email, password }, res }) {
+    try {
+      const user = await prisma.tb_user.findFirst({
+        where: { email, deleted_at: null },
+      });
 
-    const user = await prisma.tb_user.findFirst({ where: { email } });
+      if (!user) return requestStatus(404, "Usuário não encontrado!", true);
 
-    if (!user || user.deleted_at !== null)
-      return res.status(404).send({ error: "Usuário não encontrado!" });
+      const isPasswordCorrect = await bcrypt.compare(password, user.password);
+      if (!isPasswordCorrect)
+        return requestStatus(401, "Senha incorreta", true);
 
-    if (!(await bcrypt.compare(password, user.password)))
-      return res.status(401).send({ error: "Senha incorreta!" });
+      const userWithoutPassword = await prisma.tb_user.findFirst({
+        where: { email: user.email },
+        select: {
+          id: true,
+          email: true,
+          password: false,
+        },
+      });
 
-    delete user.password;
-    const token = jwt.sign({ ...user }, secret);
-
-    res.status(200).send({ token, user });
+      const token = jwt.sign({ ...userWithoutPassword }, secret);
+      return requestStatus(200, { token, userWithoutPassword });
+    } catch (error) {
+      console.log(error.message);
+    }
   },
 };
