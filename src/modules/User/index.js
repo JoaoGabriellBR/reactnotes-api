@@ -1,5 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
-const { requestStatus } = require('../../utils/requestStatus');
+const { responseStatus } = require('../../utils/responseStatus');
 
 const prisma = new PrismaClient();
 
@@ -36,21 +36,20 @@ module.exports = {
     }
   },
 
-  async createUser(req, res) {
+  async createUser({ body: { name, email, password } } ) {
     try {
-      const { name, email, password } = req.body;
-
       if (!name || !email || !password)
-        return res.status(400).json({
-          error: "Por favor, envie todos os dados solicitados!",
-        });
+        return responseStatus(
+          400,
+          "Envie todos os dados solicitados",
+          "error",
+        );
 
       const userExists = await prisma.tb_user.findFirst({
         where: { email: email },
       });
 
-      if (userExists)
-        return res.status(400).json({ error: "Usuário já cadastrado" });
+      if (userExists) return responseStatus(400, 'Usuário já cadastrado.', 'error');
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -62,23 +61,20 @@ module.exports = {
         },
       });
 
-      res.status(200).json(response);
+      return responseStatus(200, response);
     } catch (e) {
       console.log(e.message);
     }
   },
 
-  async updateUser(req, res) {
+  async updateUser({ body: { name, email }, userData }) {
     try {
-      const { userData } = req;
-      const { name, email } = req.body;
-
       const userExists = await prisma.tb_user.findFirst({
         where: { id: parseInt(userData.id) },
       });
 
       if (!userExists)
-        return res.status(404).send({ error: "Usuário não encontrado" });
+        return responseStatus(404, "Usuário não encontrado.", "error");
 
       const response = await prisma.tb_user.update({
         where: { id: parseInt(userExists.id) },
@@ -88,26 +84,26 @@ module.exports = {
         },
       });
 
-      res.status(200).json(response);
+      return responseStatus(200, response);
     } catch (e) {
       console.log(e.message);
     }
   },
 
-  async changePassword(req, res) {
+  async changePassword({ body: { oldPassword, newPassword }, userData }) {
     try {
-      const { oldPassword, newPassword } = req.body;
-      const { userData } = req;
-      console.log(userData);
-
       const user = await prisma.tb_user.findFirst({
         where: { id: parseInt(userData.id) },
       });
 
-      if (!user) return res.status(401).send({ error: "Usuário inválido!" });
+      if (!user) return responseStatus(401, "Usuário inválido.", "error");
 
-      if (!(await bcrypt.compare(oldPassword, user.password)))
-        return res.status(401).send({ error: "Senha atual incorreta!" });
+      const isPasswordCorrect = await bcrypt.compare(
+        oldPassword,
+        user.password
+      );
+      if (!isPasswordCorrect)
+        return responseStatus(401, "Senha atual incorreta.", "error");
 
       await prisma.tb_user.update({
         where: { id: parseInt(user.id) },
@@ -116,44 +112,42 @@ module.exports = {
         },
       });
 
-      return res.status(200).send({ success: "Senha atualizada!" });
+      return responseStatus(200, "Senha atualizada.", "success");
     } catch (e) {
       console.log(e.message);
     }
   },
 
-  async deleteUser(req, res) {
+  async deleteUser({ params: { id } }) {
     try {
-      const { id } = req.params;
-
       const userExists = await prisma.tb_user.findFirst({
         where: { id: parseInt(id) },
       });
 
       if (!userExists)
-        return res.status(404).send({ error: "Usuário não encontrado" });
+        return responseStatus(404, "Usuário não encontrado.", "error");
 
       await prisma.tb_user.delete({
         where: { id: parseInt(userExists.id) },
       });
 
-      res.status(200).send({ success: "Usuário excluído com sucesso" });
+      return responseStatus(200, "Usuário excluído com sucesso.", "success");
     } catch (e) {
       console.log(e.message);
     }
   },
 
-  async login({ body: { email, password }, res }) {
+  async login({ body: { email, password } }) {
     try {
       const user = await prisma.tb_user.findFirst({
         where: { email, deleted_at: null },
       });
 
-      if (!user) return requestStatus(404, "Usuário não encontrado!", true);
+      if (!user) return responseStatus(404, "Usuário não encontrado!", "error");
 
       const isPasswordCorrect = await bcrypt.compare(password, user.password);
       if (!isPasswordCorrect)
-        return requestStatus(401, "Senha incorreta", true);
+        return responseStatus(401, "Senha incorreta", "error");
 
       const userWithoutPassword = await prisma.tb_user.findFirst({
         where: { email: user.email },
@@ -165,7 +159,7 @@ module.exports = {
       });
 
       const token = jwt.sign({ ...userWithoutPassword }, secret);
-      return requestStatus(200, { token, userWithoutPassword });
+      return responseStatus(200, { token, userWithoutPassword });
     } catch (error) {
       console.log(error.message);
     }
